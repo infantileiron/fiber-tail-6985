@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints, model_validator
 
@@ -48,6 +49,22 @@ class RunInput(Input):
     tail_pct: Annotated[Percent, Field(gt=0)] = Decimal("15")
     exceed_cap_pct: Percent = Decimal("20")
     tail_cap_pct: Percent = Decimal("8")
+
+
+class VehicleInput(Input):
+    code: Code
+    note: Annotated[str, StringConstraints(max_length=120)] | None = None
+    lot_ids: Annotated[list[StrictInt], Field(min_length=2, max_length=50)]
+
+
+class VehicleRunInput(RunInput):
+    # 客户端为每次合算意图生成的请求编号；原单重试沿用同一编号，不新增验收单。
+    idempotency_key: UUID
+
+
+class ReweighInput(Input):
+    shipment_kg: Annotated[StrictInt, Field(gt=0, le=100_000)]
+    reason: Annotated[str, StringConstraints(min_length=4, max_length=200)]
 
 
 class DecisionInput(Input):

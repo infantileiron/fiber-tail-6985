@@ -15,8 +15,10 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_):
+    migrations = sorted((Path(__file__).resolve().parents[1] / "migrations").glob("*.sql"))
     with connect() as db:
-        db.execute((Path(__file__).resolve().parents[1] / "migrations/001_initial.sql").read_text())
+        for migration in migrations:
+            db.execute(migration.read_text())
     if os.getenv("SEED_DEMO", "true").lower() == "true":
         try:
             seed()

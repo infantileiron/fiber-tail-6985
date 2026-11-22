@@ -1,9 +1,12 @@
 export const roleLabel = {analyst: '称重分析', reviewer: '收料复核', observer: '仓务观察'};
 export const outcomeLabel = {accept: '接收', retest: '复检', reject: '退货'};
 export const runLabel = {queued: '排队中', succeeded: '已出报告', failed: '样本不足'};
+export const vehicleRunLabel = {queued: '排队中', succeeded: '已出报告', failed: '合算未完成'};
 export const actions = {
     lot_created: '登记供货批次', sample_recorded: '记录干样', inspection_queued: '提交诊断',
     inspection_completed: '完成诊断', inspection_failed: '诊断失败', decision_published: '发布验收决定',
+    vehicle_created: '建立同车合算单', vehicle_lot_attached: '批号挂入车辆',
+    inspection_retried: '原单重试', lot_reweighed: '同车复磅',
 };
 export const parameterFields = [
     ['threshold_pct', '单样超标线', '杂质率严格高于此线计入超标重量', 3, 0],
@@ -11,3 +14,7 @@ export const parameterFields = [
     ['exceed_cap_pct', '超标份额上限', '超标干样重量占总干样重量的上限', 20, 0],
     ['tail_cap_pct', '尾部均值上限', '尾部重量加权平均杂质率的上限', 8, 0],
 ];
+export const envelopeLabel = {
+    cleanest: '缺样补成最干净（0%）',
+    dirtiest: '缺样补成最脏（100%）',
+};

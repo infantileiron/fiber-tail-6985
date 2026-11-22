@@ -13,12 +13,15 @@ def get_lot(db, lot_id, lock=False):
 
 def list_lots(db):
     return db.execute("""
-        SELECT l.*, s.sample_count, s.total_dry_g, d.outcome, d.published_version
+        SELECT l.*, s.sample_count, s.total_dry_g, d.outcome, d.published_version,
+               vl.vehicle_id, v.code AS vehicle_code
         FROM lots l
         CROSS JOIN LATERAL (
             SELECT count(*) AS sample_count, COALESCE(sum(dry_g), 0) AS total_dry_g
             FROM samples WHERE lot_id = l.id
         ) s
+        LEFT JOIN vehicle_lots vl ON vl.lot_id = l.id
+        LEFT JOIN vehicles v ON v.id = vl.vehicle_id
         LEFT JOIN LATERAL (
             SELECT d.outcome, i.version AS published_version FROM inspections i
             JOIN decisions d ON d.inspection_id = i.id WHERE i.lot_id = l.id
@@ -42,7 +45,8 @@ def sample_snapshot(db, lot_id):
     """, (lot_id,)).fetchall()
 
 
-def write_event(db, lot_id, actor_id, action, reference):
+def write_event(db, lot_id, actor_id, action, reference, vehicle_id=None):
     db.execute("""
-        INSERT INTO audit_events (lot_id, actor_id, action, reference) VALUES (%s, %s, %s, %s)
-    """, (lot_id, actor_id, action, reference))
+        INSERT INTO audit_events (lot_id, vehicle_id, actor_id, action, reference)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (lot_id, vehicle_id, actor_id, action, reference))

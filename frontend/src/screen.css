@@ -126,6 +126,12 @@ td small { display: block; color: var(--muted); margin-top: .12rem; }
 .tone-accept, .tone-succeeded { color: var(--forest); background: var(--sage); border-color: transparent; }
 .tone-reject, .tone-failed { color: var(--rust); background: var(--faint-rust); border-color: transparent; }
 .tone-retest, .tone-queued { background: var(--gold); border-color: transparent; }
+.tone-provisional { color: var(--forest); background: var(--gold); border-color: transparent; }
+.envelope-block { margin: 1.25rem 0; }
+.envelope-block table strong { font-variant-numeric: tabular-nums; }
+.vehicle-strip strong { font-size: 1.12rem; }
+.reweigh-dialog { width: min(420px, calc(100% - 2rem)); }
+select[multiple] { min-height: 150px; }
 .lot-strip { display: grid; margin-bottom: 1.35rem; grid-template-columns: 1fr 1.3fr .8fr .65fr; border-block: 1px solid var(--hairline); background: var(--fold); }
 .lot-strip > div { padding: .88rem 1.15rem; display: flex; flex-direction: column; justify-content: center; }
 .lot-strip > div + div { border-left: 1px solid var(--hairline); }

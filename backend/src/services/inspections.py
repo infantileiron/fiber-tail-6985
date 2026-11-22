@@ -9,6 +9,7 @@ from src.constants.domain import RunStatus
 from src.models.inspections import get_inspection
 from src.models.ledger import get_lot, sample_snapshot, write_event
 from src.services.weighted_tail import InsufficientSamples, analyze
+from src.services.vehicles import process_vehicle, vehicle_snapshot
 from src.utils.snapshot import checksum
 
 log = logging.getLogger(__name__)
@@ -57,6 +58,9 @@ def process_next(db):
     """).fetchone()
     if not job:
         return False
+    if job["vehicle_id"] is not None:
+        process_vehicle(db, job)
+        return True
     try:
         result = analyze(job["snapshot"], job["parameters"])
         result["comparison"] = _comparison(db, job, result)
@@ -74,18 +78,34 @@ def process_next(db):
     return True
 
 
+def _current_snapshot(db, row):
+    if row["vehicle_id"] is not None:
+        return vehicle_snapshot(db, row["vehicle_id"]), "车辆成员的干样或复磅吨位已有变化，请重新合算后发布"
+    return sample_snapshot(db, row["lot_id"]), "干样台账已有新增，请重新诊断后发布"
+
+
 def publish(run_id, payload, actor):
     with connect() as db:
         row = get_inspection(db, run_id)
-        get_lot(db, row["lot_id"], lock=True)
+        if row["vehicle_id"] is not None:
+            scope_column, scope_id = "vehicle_id", row["vehicle_id"]
+            lock_table = "vehicles"
+        else:
+            scope_column, scope_id = "lot_id", row["lot_id"]
+            lock_table = "lots"
+        db.execute(f"SELECT 1 FROM {lock_table} WHERE id = %s FOR UPDATE", (scope_id,))
         row = get_inspection(db, run_id)
-        latest = db.execute("SELECT max(version) AS version FROM inspections WHERE lot_id = %s", (row["lot_id"],)).fetchone()
+        latest = db.execute(
+            f"SELECT max(version) AS version FROM inspections WHERE {scope_column} = %s", (scope_id,)
+        ).fetchone()
         if row["outcome"] or row["status"] != RunStatus.SUCCEEDED or row["version"] != latest["version"]:
             raise HTTPException(409, "仅最新且已算完的待复核版本可发布")
-        if row["checksum"] != checksum(sample_snapshot(db, row["lot_id"])):
-            raise HTTPException(409, "干样台账已有新增，请重新诊断后发布")
+        current, stale_message = _current_snapshot(db, row)
+        if row["checksum"] != checksum(current):
+            raise HTTPException(409, stale_message)
         db.execute("""
             INSERT INTO decisions (inspection_id, outcome, rationale, reviewer_id) VALUES (%s, %s, %s, %s)
         """, (run_id, payload.outcome, payload.rationale, actor))
-        write_event(db, row["lot_id"], actor, "decision_published", f"V{row['version']:02}")
+        write_event(db, row["lot_id"], actor, "decision_published", f"V{row['version']:02}",
+                    vehicle_id=row["vehicle_id"])
         return get_inspection(db, run_id)

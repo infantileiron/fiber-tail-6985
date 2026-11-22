@@ -13,7 +13,7 @@ export function submitForm(selector, handler) {
         button.disabled = true;
         error.textContent = '';
         try {
-            await handler(Object.fromEntries(new FormData(form)));
+            await handler(Object.fromEntries(new FormData(form)), form);
         } catch (err) {
             error.textContent = err.message;
         } finally {
